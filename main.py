@@ -24,7 +24,7 @@ SYSTEM_INSTRUCTION = """
 
 # استخدام الاسم الصريح بدون إضافات
 model = genai.GenerativeModel(
-    model_name='models/gemini-1.5-flash',
+    model_name='gemini-1.5-pro',
     system_instruction=SYSTEM_INSTRUCTION
 )
 
