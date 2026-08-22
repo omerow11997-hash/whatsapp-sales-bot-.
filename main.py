@@ -20,20 +20,11 @@ SYSTEM_INSTRUCTION = """
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
 
-# دالة ذكية لاختيار نموذج فلاش المتاح تلقائياً
-def get_working_model():
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods and 'flash' in m.name.lower():
-                return genai.GenerativeModel(model_name=m.name, system_instruction=SYSTEM_INSTRUCTION)
-    except Exception as e:
-        print(f"Error listing models: {e}")
-    
-    # نموذج احتياطي دائم
-    return genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=SYSTEM_INSTRUCTION)
-
-# تهيئة النموذج تلقائياً
-model = get_working_model()
+# استخدام نموذج gemini-1.5-flash لضمان الاستقرار
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_INSTRUCTION
+)
 
 @app.route('/', methods=['GET'])
 def home():
