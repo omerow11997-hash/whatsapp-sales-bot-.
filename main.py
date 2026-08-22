@@ -15,7 +15,6 @@ def h():
 @app.route('/webhook', methods=['POST'])
 def w():
     d = request.get_json()
-    print("Received webhook data:", d)
     try:
         if d.get('typeWebhook') != 'incomingMessageReceived':
             return jsonify({'s': 'i'}), 200
@@ -28,33 +27,30 @@ def w():
             return jsonify({'s': 'i'}), 200
             
         u = m.get('textMessageData', {}).get('textMessage') or m.get('extendedTextMessageData', {}).get('text', '')
-        print(f"User message: {u}")
-        
         if not u:
             return jsonify({'s': 'n'}), 200
             
-        models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash"]
+        # استخدام صيغة أبسط وأحدث للطلب
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={k}"
+        payload = {
+            "contents": [{
+                "parts": [{"text": u}]
+            }]
+        }
+        
+        res = requests.post(url, json=payload)
+        res_json = res.json()
+        print("Full Gemini API Response:", res_json)
+        
         re = ""
-        
-        for mod in models:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={k}"
-            p = {"contents": [{"parts": [{"text": u}]}]}
-            res = requests.post(url, json=p).json()
-            try:
-                re = res['candidates'][0]['content']['parts'][0]['text']
-                if re:
-                    break
-            except Exception as ex:
-                print(f"Model {mod} failed: {ex}")
-                continue
-                
-        print(f"Gemini response: {re}")
-        
+        try:
+            re = res_json['candidates'][0]['content']['parts'][0]['text']
+        except Exception as ex:
+            print(f"Extraction error: {ex}")
+            
         if re:
             green_url = f"https://api.green-api.com/waInstance{i}/sendMessage/{t}"
-            payload = {"chatId": c, "message": re}
-            send_res = requests.post(green_url, json=payload)
-            print("Green-API response:", send_res.status_code, send_res.text)
+            requests.post(green_url, json={"chatId": c, "message": re})
             
         return jsonify({'s': 'o'}), 200
         
