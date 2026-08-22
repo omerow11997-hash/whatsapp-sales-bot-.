@@ -48,25 +48,23 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # طلب مباشر لـ Gemini API عبر HTTP
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        # تم تحديث النموذج هنا إلى gemini-2.0-flash المتوفر والمستقر
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+        
         payload = {
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_INSTRUCTION}]
-            },
             "contents": [
                 {
                     "role": "user",
                     "parts": [{"text": user_text}]
                 }
-            ]
+            ],
+            "system_instruction": {
+                "parts": [{"text": SYSTEM_INSTRUCTION}]
+            }
         }
         
         gemini_res = requests.post(gemini_url, json=payload)
         res_data = gemini_res.json()
-        
-        # طباعة الرد كاملًا في سجلات Render لنتمكن من فحصه
-        print("Gemini Full Response:", res_data)
         
         # استخراج الرد بأمان تام
         reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
