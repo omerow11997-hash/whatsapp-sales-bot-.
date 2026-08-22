@@ -65,7 +65,14 @@ def webhook():
         gemini_res = requests.post(gemini_url, json=payload)
         res_data = gemini_res.json()
         
-        reply_text = res_data['candidates'][0]['content']['parts'][0]['text']
+        # استخراج الرد بأمان تام لمنع حدوث خطأ KeyError
+        reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
+        if "candidates" in res_data and res_data["candidates"]:
+            candidate = res_data["candidates"][0]
+            if "content" in candidate and "parts" in candidate["content"]:
+                parts = candidate["content"]["parts"]
+                if parts and "text" in parts[0]:
+                    reply_text = parts[0]["text"]
 
         # إرسال الرد عبر Green API
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
