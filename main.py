@@ -48,8 +48,8 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # قائمة النماذج التي سيتم تجربتها بالترتيب تلقائياً حتى ينجح أحدها
-        models_to_try = ["gemini-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        # استخدام النموذج المعتمد والمستقر للوصول المباشر
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         
         payload = {
             "contents": [
@@ -60,31 +60,18 @@ def webhook():
             ]
         }
         
+        gemini_response = requests.post(gemini_url, json=payload)
+        res_json = gemini_response.json()
+        
         reply_text = ""
-        last_error = ""
-
-        for model_name in models_to_try:
-            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-            try:
-                gemini_response = requests.post(gemini_url, json=payload)
-                res_json = gemini_response.json()
-                
-                if 'candidates' in res_json and len(res_json['candidates']) > 0:
-                    candidate = res_json['candidates'][0]
-                    if 'content' in candidate and 'parts' in candidate['content']:
-                        reply_text = candidate['content']['parts'][0].get('text', '')
-                        if reply_text:
-                            break # نجح النموذج، نخرج من الحلقة فوراً
-                else:
-                    last_error = res_json.get('error', {}).get('message', 'unknown error')
-            except Exception as model_err:
-                last_error = str(model_err)
-                continue
+        if 'candidates' in res_json and len(res_json['candidates']) > 0:
+            candidate = res_json['candidates'][0]
+            if 'content' in candidate and 'parts' in candidate['content']:
+                reply_text = candidate['content']['parts'][0].get('text', '')
 
         if not reply_text:
-            reply_text = f"عذراً يا مهندس، فشلت كل النماذج في الرد. الخطأ الأخير: {last_error}"
+            reply_text = f"عذراً يا مهندس، حدث خطأ في الاستجابة: {res_json.get('error', {}).get('message', 'خطأ غير معروف')}"
 
-        # إرسال الرد عبر Green API
         whatsapp_url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
         green_payload = {
             "chatId": chat_id,
@@ -99,4 +86,4 @@ def webhook():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port5000)
+    app.run(host='0.0.0.0', port=5000)
