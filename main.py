@@ -1,15 +1,12 @@
 import os
 from flask import Flask, request, jsonify
 import requests
-import google.generativeai as genai
 
 app = Flask(__name__)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GREEN_API_INSTANCE = os.environ.get("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN")
-
-genai.configure(api_key=GEMINI_API_KEY)
 
 SYSTEM_INSTRUCTION = """
 موظف مبيعات وتواصل مع العملاء محترف ومدرب بشكل ممتاز
@@ -19,12 +16,6 @@ SYSTEM_INSTRUCTION = """
 3. أسلوب جذاب، وتقديم حلول واقتراحات تناسب احتياج العميل.
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
-
-# استخدام نموذج gemini-1.5-flash لضمان الاستقرار
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=SYSTEM_INSTRUCTION
-)
 
 @app.route('/', methods=['GET'])
 def home():
@@ -57,19 +48,33 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        response = model.generate_content(user_text)
+        # التواصل المباشر عبر HTTP API بدون مكتبات معقدة
+        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         
-        if response and response.text:
-            reply_text = response.text
-        else:
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": f"{SYSTEM_INSTRUCTION}\n\nالعميل: {user_text}"}]
+                }
+            ]
+        }
+        
+        gemini_response = requests.post(gemini_url, json=payload)
+        res_json = gemini_response.json()
+        
+        try:
+            reply_text = res_json['candidates'][0]['content']['parts'][0]['text']
+        except Exception:
             reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
 
-        url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
+        # إرسال الرد عبر Green API
+        whatsapp_url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
         green_payload = {
             "chatId": chat_id,
             "message": reply_text
         }
-        requests.post(url, json=green_payload)
+        requests.post(whatsapp_url, json=green_payload)
 
         return jsonify({'status': 'success'}), 200
 
