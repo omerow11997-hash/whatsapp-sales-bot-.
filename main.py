@@ -18,11 +18,9 @@ SYSTEM_INSTRUCTION = """
 2. دقة متناهية على سؤال العميل بناءً على المعطيات المتاحة.
 3. أسلوب جذاب، وتقديم حلول واقتراحات تناسب احتياج العميل.
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
-"""
-
-# استخدام أحدث نموذج مستقر ومتوافق
+""" 
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
+    model_name="gemini-2.0-flash",
     system_instruction=SYSTEM_INSTRUCTION
 )
 
