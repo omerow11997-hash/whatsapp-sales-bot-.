@@ -1,8 +1,8 @@
+import os
+import tempfile
 from flask import Flask, request, jsonify
 import requests
 import google.generativeai as genai
-import os
-import tempfile
 
 app = Flask(__name__)
 
@@ -22,9 +22,9 @@ SYSTEM_INSTRUCTION = """
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
 
+# استخدام الاسم الصريح بدون إضافات
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-
+    model_name='models/gemini-1.5-flash',
     system_instruction=SYSTEM_INSTRUCTION
 )
 
@@ -88,4 +88,3 @@ def webhook():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
