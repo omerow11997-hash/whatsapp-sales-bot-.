@@ -65,7 +65,10 @@ def webhook():
         gemini_res = requests.post(gemini_url, json=payload)
         res_data = gemini_res.json()
         
-        # استخراج الرد بأمان تام لمنع حدوث خطأ KeyError
+        # طباعة الرد كاملًا في سجلات Render لنتمكن من فحصه
+        print("Gemini Full Response:", res_data)
+        
+        # استخراج الرد بأمان تام
         reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
         if "candidates" in res_data and res_data["candidates"]:
             candidate = res_data["candidates"][0]
