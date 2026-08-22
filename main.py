@@ -1,17 +1,12 @@
 import os
-import tempfile
 from flask import Flask, request, jsonify
 import requests
-import google.generativeai as genai
 
 app = Flask(__name__)
 
-# --- الإعدادات والمفاتيح ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GREEN_API_INSTANCE = os.environ.get("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN")
-
-genai.configure(api_key=GEMINI_API_KEY)
 
 SYSTEM_INSTRUCTION = """
 موظف مبيعات وتواصل مع العملاء محترف ومدرب بشكل ممتاز
@@ -21,14 +16,6 @@ SYSTEM_INSTRUCTION = """
 3. أسلوب جذاب، وتقديم حلول واقتراحات تناسب احتياج العميل.
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
-
-# استخدام الاسم الصريح بدون إضافات
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-pro',
-    system_instruction=SYSTEM_INSTRUCTION
-)
-
-sessions = {}
 
 @app.route('/', methods=['GET'])
 def home():
@@ -49,12 +36,10 @@ def webhook():
         chat_id = sender_data.get('chatId')
         type_message = message_data.get('typeMessage')
         
-        # تجاهل الرسائل الصادرة من البوت نفسه
         if sender_data.get('self', False):
             return jsonify({'status': 'ignored_self'}), 200
 
         user_text = ""
-        
         if type_message == 'textMessage':
             user_text = message_data.get('textMessageData', {}).get('textMessage', '')
         elif type_message == 'extendedTextMessage':
@@ -63,22 +48,32 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # إدارة الجلسة والمحادثة
-        if chat_id not in sessions:
-            sessions[chat_id] = model.start_chat(history=[])
-            
-        chat = sessions[chat_id]
-        response = chat.send_message(user_text)
-        reply_text = response.text
+        # طلب مباشر لـ Gemini API عبر HTTP
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "system_instruction": {
+                "parts": [{"text": SYSTEM_INSTRUCTION}]
+            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": user_text}]
+                }
+            ]
+        }
+        
+        gemini_res = requests.post(gemini_url, json=payload)
+        res_data = gemini_res.json()
+        
+        reply_text = res_data['candidates'][0]['content']['parts'][0]['text']
 
         # إرسال الرد عبر Green API
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
-        payload = {
+        green_payload = {
             "chatId": chat_id,
             "message": reply_text
         }
-        headers = {'Content-Type': 'application/json'}
-        requests.post(url, json=payload, headers=headers)
+        requests.post(url, json=green_payload)
 
         return jsonify({'status': 'success'}), 200
 
