@@ -5,12 +5,10 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# قراءة مفاتيح الـ API
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GREEN_API_INSTANCE = os.environ.get("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN")
 
-# تهيئة جيميناي بالطريقة الرسمية الجديدة
 genai.configure(api_key=GEMINI_API_KEY)
 
 SYSTEM_INSTRUCTION = """
@@ -22,9 +20,9 @@ SYSTEM_INSTRUCTION = """
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
 
-# استخدام نموذج فلاش المدعوم رسمياً
+# استخدام أحدث نموذج مستقر ومتوافق
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-2.5-flash",
     system_instruction=SYSTEM_INSTRUCTION
 )
 
@@ -59,16 +57,13 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # توليد الرد باستخدام مكتبة جيميناي الرسمية
         response = model.generate_content(user_text)
         
-        # استخراج النص بأمان
         if response and response.text:
             reply_text = response.text
         else:
             reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
 
-        # إرسال الرد عبر Green API
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
         green_payload = {
             "chatId": chat_id,
