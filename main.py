@@ -48,8 +48,8 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # الاتصال المباشر مع طباعة الخطأ في الـ Logs إن وجد للتتبع
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        # استخدام v1beta لدعم نموذج gemini-1.5-flash
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         
         payload = {
             "contents": [
@@ -69,7 +69,7 @@ def webhook():
             reply_text = res_json['candidates'][0]['content']['parts'][0]['text']
         except Exception as parse_error:
             print(f"Parsing error: {parse_error}, Full response: {res_json}")
-            reply_text = f"عذراً يا مهندس، حدث خطأ في تحليل استجابة الذكاء الاصطناعي: {res_json.get('error', {}).get('message', 'خطأ غير معروف')}"
+            reply_text = "عذراً يا مهندس، لم أتمكن من استخراج الرد من الذكاء الاصطناعي."
 
         # إرسال الرد عبر Green API
         whatsapp_url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
