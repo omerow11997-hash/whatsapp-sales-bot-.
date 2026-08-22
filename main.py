@@ -1,21 +1,32 @@
 import os
 from flask import Flask, request, jsonify
 import requests
+import google.generativeai as genai
 
 app = Flask(__name__)
 
+# قراءة مفاتيح الـ API
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GREEN_API_INSTANCE = os.environ.get("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN")
 
+# تهيئة جيميناي بالطريقة الرسمية الجديدة
+genai.configure(api_key=GEMINI_API_KEY)
+
 SYSTEM_INSTRUCTION = """
 موظف مبيعات وتواصل مع العملاء محترف ومدرب بشكل ممتاز
-:مهامك وأسلوبك
+مهامك وأسلوبك:
 1. الترحيب بالعميل بأسلوب راقٍ ومباشر دون إطالة مملة.
 2. دقة متناهية على سؤال العميل بناءً على المعطيات المتاحة.
 3. أسلوب جذاب، وتقديم حلول واقتراحات تناسب احتياج العميل.
 4. إجابة العميل دائماً هي مساعدة العميل، وإقناعه بأسلوب سلس، وتوجيهه للخطوة التالية.
 """
+
+# استخدام نموذج فلاش المدعوم رسمياً
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_INSTRUCTION
+)
 
 @app.route('/', methods=['GET'])
 def home():
@@ -48,32 +59,14 @@ def webhook():
         if not user_text or not chat_id:
             return jsonify({'status': 'no_text'}), 200
 
-        # تم تحديث النموذج هنا إلى gemini-2.0-flash المتوفر والمستقر
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+        # توليد الرد باستخدام مكتبة جيميناي الرسمية
+        response = model.generate_content(user_text)
         
-        payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": user_text}]
-                }
-            ],
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_INSTRUCTION}]
-            }
-        }
-        
-        gemini_res = requests.post(gemini_url, json=payload)
-        res_data = gemini_res.json()
-        
-        # استخراج الرد بأمان تام
-        reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
-        if "candidates" in res_data and res_data["candidates"]:
-            candidate = res_data["candidates"][0]
-            if "content" in candidate and "parts" in candidate["content"]:
-                parts = candidate["content"]["parts"]
-                if parts and "text" in parts[0]:
-                    reply_text = parts[0]["text"]
+        # استخراج النص بأمان
+        if response and response.text:
+            reply_text = response.text
+        else:
+            reply_text = "عذراً، لم أتمكن من معالجة طلبك حالياً."
 
         # إرسال الرد عبر Green API
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
@@ -86,7 +79,7 @@ def webhook():
         return jsonify({'status': 'success'}), 200
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error occurred: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
