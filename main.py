@@ -22,14 +22,14 @@ def w():
   re=""
   for mod in models:
    url=f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={k}"
-   p={"contents":[{"parts":[{"text":f"أنت موظف مبيعات محترف. أجب على: {u}"}]}]}
+   p={"contents":[{"parts":[{"text":u}]}]}
    res=requests.post(url,json=p).json()
    try:
     re=res['candidates'][0]['content']['parts'][0]['text']
     if re:break
    except:continue
-  if not re:re="عذراً يا مهندس، لم أتمكن من جلب الرد حالياً."
-  requests.post(f"https://api.green-api.com/waInstance{i}/sendMessage/{t}",json={"chatId":c,"message":re})
+  if re:
+   requests.post(f"https://api.green-api.com/waInstance{i}/sendMessage/{t}",json={"chatId":c,"message":re})
   return jsonify({'s':'o'}),200
  except Exception as e:
   print(e)
